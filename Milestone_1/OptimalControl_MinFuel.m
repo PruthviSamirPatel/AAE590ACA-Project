@@ -24,6 +24,7 @@ umax = umax_dim / aStar;
 B = [zeros(3,3); eye(3)];
 t0 = 0;
 opts = odeset('RelTol',1e-12, 'AbsTol',1e-12);
+tf = 10;
 
 %% Load Parking Orbit
 load('Parking_Orbit.mat')
@@ -42,34 +43,52 @@ r0 = [x0; y0; z0]/lStar;
 v0 = [vx0; vy0; vz0]/vStar;
 X0 = [r0;v0];
 
-%% Solve Two-Point Boundary Value Problem (TPBVP)
-% Optimization vector Z = [lambda1; lambda2; lambda3; lambda4; lambda5; lambda6; tf]
-% Z_guess = [1e-3; -1e-3; 1e-3; -1e-3; 1e-3; -1e-3; 6.5]; % this works well
-% to converge as an inital guess. 
-Z_guess = [4.7758, 5.6636, 3.3864, -2.9888, 5.5177, 7.4891, 5.9236]';
+%% Get orbit slot state (assuming no perturbations) at tf
+% mean anomaly at tf:
+M_f = Target.M + rad2deg(Target.n_nd * (tf - t0));
+M_f = mod(M_f, 360);
 
+% convert to true anomaly:
+E = kepler(M_f,Target.ecc); 
+ta = 2 * atan2(sqrt(1 + Target.ecc) * sind(E/2), ...
+               sqrt(1 - Target.ecc) * cosd(E/2));
+ta = rad2deg(ta);
+% get target cartesian state:
+[xTf, yTf, zTf, vxTf, vyTf, vzTf] = kep2cart(Target.a_nd, Target.ecc, Target.inc, ...
+    Target.argp, Target.raan, ta, mu_nd);
+xTargetf = [xTf; yTf; zTf; vxTf; vyTf; vzTf];
+
+%% get initial lambda with fsolve
 fsolve_opts = optimoptions('fsolve', 'OptimalityTolerance', 1e-12, ...
     'FunctionTolerance', 1e-12, 'Display', 'iter');
 
-[Z_sol, fval, exitflag] = fsolve(@(Z) shooting_minTime(Z, X0, t0, umax, mu_nd, B, Target, opts), Z_guess, fsolve_opts);
-
-lambda0 = Z_sol(1:6);
-tf = Z_sol(7);
-
+rhos = [1, .5, .2, .1, 0.05, 1e-2];
+lambda0s = zeros(6, length(rhos));
+% lambda0_guess = [0.8; 0.1; 0.2; 1.1];
+lambda0_guess = [1e-3; -1e-3; 1e-3; -1e-3; 1e-3; -1e-3];
+for i=1:length(rhos)
+    rho = rhos(i);
+    fun = @(lambda0) shooting_minFuel(lambda0, X0, t0, tf, umax, mu_nd, B, xTargetf, rho, opts); 
+    [lambda0, fval, exitflag] = fsolve(fun, lambda0_guess, fsolve_opts);
+    lambda0_guess = lambda0;
+    lambda0s(:,i) = lambda0;
+end
 fprintf('\nConverged Initial Costate: [%.4f, %.4f, %.4f, %.4f, %.4f, %.4f]\n', lambda0);
-fprintf('Converged Final Time (tf): %.4f\n', tf);
 
 %% Generate Optimal Trajectory for Plotting
 N = 1000;
 t = linspace(t0, tf, N);
 
 X_init = [X0; lambda0];
-sol = ode45(@(t,X) EoM_minTime(t, X, B, mu_nd, umax), [t0 tf], X_init, opts);
+sol = ode45(@(t,X) EoM_minFuel(t, X, B, mu_nd, umax, rho), [t0 tf], X_init, opts);
 X_eval = deval(sol, t);
 
 pos = X_eval(1:3, :);       % nondimensional transfer position
 vel = X_eval(4:6, :);
 lambda = X_eval(7:12, :);
+
+fprintf("\n\n Position Difference at tf: %e", norm(pos(:,end) - xTargetf(1:3)))
+fprintf("\n\n Velocity Difference at tf: %e", norm(vel(:,end) - xTargetf(4:6)))
 
 % dimensional transfer position for plotting
 pos_dim = pos * lStar;
@@ -78,10 +97,18 @@ pos_dim = pos * lStar;
 u = zeros(3, N);
 for k = 1:N
     p = -B' * lambda(:,k);
+    uHat = p / norm(p);
+    
+    % Switching Function: S > 0 when ||p|| > 1
+    S = norm(p) - 1; 
+    
+    Gamma = umax/2 * (1 + tanh(S/rho));
+    u = uHat * Gamma;
+
     if norm(p) < 1e-10
         u(:,k) = zeros(3,1);
     else
-        u(:,k) = (p / norm(p)) * umax;
+        u(:,k) = u;
     end
 end
 
@@ -166,6 +193,10 @@ xlabel('Time [hr]');
 ylabel('||u|| [nondim]');
 title('Control Magnitude History');
 
+%% Fuel cost
+dt = t(2) - t(1);
+J = sum(vecnorm(u,2,1)) * dt
+
 %% FUNCTION HELPER
 function Xdot = twoBodyEOM_nd(~, X, mu_nd)
     r = X(1:3);
@@ -177,3 +208,7 @@ function Xdot = twoBodyEOM_nd(~, X, mu_nd)
 
     Xdot = [v; a];
 end
+
+
+
+
