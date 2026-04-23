@@ -8,7 +8,7 @@ function Inter = get_intermediary_orbit(Earth, Parking, Target, t_coast)
     mu = Earth.mu;
 
     Inter.ecc = 1e-3;
-    Inter.a   = 1.1 * Target.a;
+    Inter.a   = 1.01 * Target.a;
     Inter.raan = Parking.raan;
     Inter.argp = Parking.argp;
 
