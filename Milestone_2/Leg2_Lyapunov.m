@@ -236,7 +236,7 @@ plot(t_days, 1000*u_norm, 'k', 'LineWidth', 1.6);
 grid on;
 xlabel('t [days]');
 ylabel('u [m/s^2]');
-title('Control History');
+title(sprintf('Control History — ∆v = %.3f km/s', DeltaV_km_s));
 legend('u_x','u_y','u_z','||u||','Location','best');
 
 % Altitude history

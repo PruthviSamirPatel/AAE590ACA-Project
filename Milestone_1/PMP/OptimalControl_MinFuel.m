@@ -24,7 +24,9 @@ umax = umax_dim / aStar;
 B = [zeros(3,3); eye(3)];
 t0 = 0;
 opts = odeset('RelTol',1e-12, 'AbsTol',1e-12);
-tf = 10;
+numDays = .2;
+tf = numDays*24*60*60;
+tf = tf/tStar;
 
 %% Load Parking Orbit
 load('Parking_Orbit.mat')
