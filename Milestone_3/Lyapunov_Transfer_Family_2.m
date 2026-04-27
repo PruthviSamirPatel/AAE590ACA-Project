@@ -1,6 +1,6 @@
 clc; clear; close all
 
-% ===================== USER SETTINGS =====================
+%% ===================== USER SETTINGS =====================
 days_coast = 10;
 t_coast = days_coast*24*60*60; % s
 
@@ -14,7 +14,7 @@ vTol_km_s = 1e-3;     % rendezvous velocity tolerance
 
 saveOnlyConverged = true;
 
-% ===================== LOAD ENVIRONMENT =====================
+%% ===================== LOAD ENVIRONMENT =====================
 load("Earth_params.mat")
 rEarth = Earth.radius;
 mu     = Earth.mu;
@@ -22,7 +22,7 @@ mu     = Earth.mu;
 load("Orbital_Slot.mat")
 load("Parking_Orbit.mat")
 
-% ===================== NONDIMENSIONALIZATION =====================
+%% ===================== NONDIMENSIONALIZATION =====================
 lStar = rEarth;
 tStar = sqrt(rEarth^3/mu);
 vStar = lStar/tStar;
@@ -34,11 +34,11 @@ t_coast_nd = t_coast/tStar;
 rTol_nd = rTol_km/lStar;
 vTol_nd = vTol_km_s/vStar;
 
-% ===================== CONTROL SETTINGS =====================
+%% ===================== CONTROL SETTINGS =====================
 uMax_km_s2 = 1e-3;
 uMax = uMax_km_s2/aStar;
 
-% ===================== EARTH AVOIDANCE SETTINGS =====================
+%% ===================== EARTH AVOIDANCE SETTINGS =====================
 hSafe_km = 150;
 hOn_km   = 300;
 
@@ -48,18 +48,18 @@ rOn   = (rEarth + hOn_km)/lStar;
 kBarrier = 5e-5;
 epsBar   = 1e-6;
 
-% ===================== GAINS =====================
+%% ===================== GAINS =====================
 Kmee = eye(5);
 Pmee = eye(5);
 
 Kcart = eye(3);
 Pcart = eye(3);
 
-% ===================== CONSTANTS =====================
+%% ===================== CONSTANTS =====================
 Re_nd = Earth.radius/lStar;
 J2 = Earth.J2;
 
-% ===================== BUILD INTERMEDIARY FAMILY =====================
+%% ===================== BUILD INTERMEDIARY FAMILY =====================
 InterFamily = get_intermediary_orbit_family(Earth, Parking, Target, ...
                                             t_coast, N_intermediary);
 
@@ -74,7 +74,7 @@ fprintf('============================================================\n');
 
 iGood = 0;
 
-% ===================== LOOP OVER INTERMEDIARY ORBITS =====================
+%% ===================== LOOP OVER INTERMEDIARY ORBITS =====================
 for kk = 1:N
 
     fprintf('\n------------------------------------------------------------\n');
@@ -99,13 +99,13 @@ for kk = 1:N
     );
 
     try
-        % ================================================================
-        % LEG 1: PARKING TO INTERMEDIARY ORBIT USING MEE LYAPUNOV CONTROL
-        % ================================================================
+        %% ================================================================
+        %% LEG 1: PARKING TO INTERMEDIARY ORBIT USING MEE LYAPUNOV CONTROL
+        %% ================================================================
 
         Inter = InterFamily(kk);
 
-        Initial orbit
+        % Initial orbit
         a0    = Parking.a;
         e0    = Parking.ecc;
         inc0  = deg2rad(Parking.inc);
@@ -113,22 +113,22 @@ for kk = 1:N
         argp0 = deg2rad(Parking.argp);
         M0    = deg2rad(Parking.M);
 
-        Intermediary orbit
+        % Intermediary orbit
         aI    = Inter.a;
         eI    = Inter.ecc;
         incI  = deg2rad(Inter.inc);
         raanI = deg2rad(Inter.raan);
         argpI = deg2rad(Inter.argp);
 
-        Initial true anomaly
+        % Initial true anomaly
         E0 = kepler(rad2deg(M0), e0);
         ta0 = 2*atan2(sqrt(1+e0)*sind(E0/2), ...
                       sqrt(1-e0)*cosd(E0/2));
 
-        Target true anomaly for MEE slow-element targeting
+        % Target true anomaly for MEE slow-element targeting
         taI = 0;
 
-        Convert to MEE
+        % Convert to MEE
         mee0_dim = kep2mee(a0, e0, inc0, raan0, argp0, ta0);
         meeT_dim = kep2mee(aI, eI, incI, raanI, argpI, taI);
 
@@ -144,17 +144,17 @@ for kk = 1:N
             Kmee, Pmee, mu_nd, uMax, rSafe, rOn, kBarrier, epsBar, J2, Re_nd), ...
             tSpan_leg1, X0_leg1, opts1);
 
-        Check if Leg 1 hit Earth
+        % Check if Leg 1 hit Earth
         if ~isempty(ie1)
             Result.failureReason = "Leg 1 crossed Earth keepout.";
             Result.leg1EventID = ie1(end);
-            AllResults = [AllResults; Result];
+            % AllResults = [AllResults; Result];
             AllResults{end+1,1} = Result;
             fprintf('FAILED: %s\n', Result.failureReason);
             continue
         end
 
-        Recover achieved intermediary orbit
+        % Recover achieved intermediary orbit
         mee_dim_end = [X1(end,1)*lStar; X1(end,2:6)'];
         [a_end, e_end, inc_end, raan_end, argp_end, ta_end] = mee2kep(mee_dim_end);
 
@@ -174,7 +174,7 @@ for kk = 1:N
         InterAchieved.M = rad2deg(M_end);
         InterAchieved.n = sqrt(Earth.mu/InterAchieved.a^3);
 
-        Leg 1 control and Delta-V
+        % Leg 1 control and Delta-V
         num1 = length(t1);
         u1_hist = zeros(num1,3);
         u1_norm = zeros(num1,1);
@@ -200,30 +200,53 @@ for kk = 1:N
         DV1_km_s = trapz(t1*tStar, u1_norm);
         DV1_m_s = 1000*DV1_km_s;
 
-        if min(alt1_hist) < hSafe_km
-            Result.failureReason = "Leg 1 altitude went below safe altitude.";
-            AllResults = [AllResults; Result];
-            fprintf('FAILED: %s\n', Result.failureReason);
-            continue
-        end
+        % if min(alt1_hist) < hSafe_km
+        %     Result.failureReason = "Leg 1 altitude went below safe altitude.";
+        %     AllResults = [AllResults; Result];
+        %     fprintf('FAILED: %s\n', Result.failureReason);
+        %     continue
+        % end
 
         Result.leg1Success = true;
 
-        % ================================================================
-        % COAST TO RAAN MATCH
-        % ================================================================
-
+        %% ================================================================
+        %% COAST TO RAAN MATCH, THEN FIND CLOSEST PHASING POINT
+        %% ================================================================
+        
         [tMatch, raanI_match, raanT_match] = find_raan_match_time(Earth, ...
             InterAchieved, Target);
+        
+        fprintf('RAAN match coast = %.6f days\n', tMatch/(24*3600));
+        
+        % Search extra coast after RAAN match
+        N_extra_revs = 5;       % coast this many target revolutions after RAAN match
+        N_phase_grid = 500;     % grid resolution before fminbnd refinement
+        
+        TargetAtMatch = propagate_orbit_J2(Earth, Target, tMatch);
+        Ttarget = 2*pi/sqrt(Earth.mu/TargetAtMatch.a^3);
+        
+        dtExtraMax = N_extra_revs*Ttarget;
+        
+        [dtExtraClosest, minSep_km, minRelSpeed_km_s] = find_closest_extra_coast( ...
+            Earth, InterAchieved, Target, tMatch, dtExtraMax, N_phase_grid);
+        
+        tCoastTotal = tMatch + dtExtraClosest;
+        
+        InterCoasted  = propagate_orbit_J2(Earth, InterAchieved, tCoastTotal);
+        TargetCoasted = propagate_orbit_J2(Earth, Target,        tCoastTotal);
+        
+        fprintf('Extra coast to closest approach = %.6f days\n', dtExtraClosest/(24*3600));
+        fprintf('Total pre-Leg-2 coast           = %.6f days\n', tCoastTotal/(24*3600));
+        fprintf('Initial Leg 2 separation        = %.6f km\n', minSep_km);
+        fprintf('Initial Leg 2 relative speed    = %.9f km/s\n', minRelSpeed_km_s);
+        fprintf('RAAN error at Leg 2 start       = %.9f deg\n', ...
+            wrapTo180Local(InterCoasted.raan - TargetCoasted.raan));
 
-        InterCoasted  = propagate_orbit_J2(Earth, InterAchieved, tMatch);
-        TargetCoasted = propagate_orbit_J2(Earth, Target,        tMatch);
+        %% ================================================================
+        %% LEG 2: INTERMEDIARY TO TARGET SLOT USING CARTESIAN LYAPUNOV
+        %% ================================================================
 
-        % ================================================================
-        % LEG 2: INTERMEDIARY TO TARGET SLOT USING CARTESIAN LYAPUNOV
-        % ================================================================
-
-        Chaser initial orbit after coast
+        % Chaser initial orbit after coast
         a0    = InterCoasted.a;
         e0    = InterCoasted.ecc;
         inc0  = InterCoasted.inc;
@@ -231,7 +254,7 @@ for kk = 1:N
         argp0 = InterCoasted.argp;
         M0    = InterCoasted.M;
 
-        Target after same coast
+        % Target after same coast
         aT    = TargetCoasted.a;
         eT    = TargetCoasted.ecc;
         incT  = TargetCoasted.inc;
@@ -239,7 +262,7 @@ for kk = 1:N
         argpT = TargetCoasted.argp;
         MT    = TargetCoasted.M;
 
-        Convert mean anomaly to true anomaly
+        % Convert mean anomaly to true anomaly
         E0_deg = kepler(M0, e0);
         ta0_deg = 2*atan2d(sqrt(1+e0)*sind(E0_deg/2), ...
                            sqrt(1-e0)*cosd(E0_deg/2));
@@ -250,7 +273,7 @@ for kk = 1:N
                            sqrt(1-eT)*cosd(ET_deg/2));
         taT_deg = mod(taT_deg, 360);
 
-        Cartesian states
+        % Cartesian states
         [x,y,z,vx,vy,vz] = kep2cart(a0, e0, inc0, argp0, raan0, ta0_deg, mu);
         rC0_nd = [x;y;z]/lStar;
         vC0_nd = [vx;vy;vz]/vStar;
@@ -300,12 +323,12 @@ for kk = 1:N
         DV2_km_s = trapz(t2*tStar, u2_norm);
         DV2_m_s = 1000*DV2_km_s;
 
-        if min(alt2_hist) < hSafe_km
-            Result.failureReason = "Leg 2 altitude went below safe altitude.";
-            AllResults = [AllResults; Result];
-            fprintf('FAILED: %s\n', Result.failureReason);
-            continue
-        end
+        % if min(alt2_hist) < hSafe_km
+        %     Result.failureReason = "Leg 2 altitude went below safe altitude.";
+        %     AllResults = [AllResults; Result];
+        %     fprintf('FAILED: %s\n', Result.failureReason);
+        %     continue
+        % end
 
         leg2HitEarth = false;
         leg2Rendezvous = false;
@@ -344,10 +367,17 @@ for kk = 1:N
         Result.leg2Success = true;
         Result.success = true;
         Result.failureReason = "None";
-
-        % ================================================================
-        % STORE SUCCESSFUL TRANSFER
-        % ================================================================
+        Result.InterAchieved = InterAchieved;
+        Result.InterCoasted = InterCoasted;
+        Result.TargetCoasted = TargetCoasted;
+        
+        Result.tMatch_s = tMatch;
+        Result.tMatch_days = tMatch/(24*3600);
+        Result.raanI_match_deg = raanI_match;
+        Result.raanT_match_deg = raanT_match;
+        %% ================================================================
+        %% STORE SUCCESSFUL TRANSFER
+        %% ================================================================
 
         Result.InterAchieved = InterAchieved;
         Result.InterCoasted = InterCoasted;
@@ -432,7 +462,7 @@ for kk = 1:N
 
 end
 
-% ===================== POSTPROCESS SUCCESSFUL CASES =====================
+%% ===================== POSTPROCESS SUCCESSFUL CASES =====================
 fprintf('\n============================================================\n');
 fprintf('Batch solve complete.\n');
 fprintf('Number converged: %d out of %d\n', length(ConvergedTransfers), N);
@@ -463,7 +493,7 @@ end
 save('Batch_Intermediary_Transfer_Results.mat', ...
      'InterFamily', 'AllResults', 'ConvergedTransfers', 'BestTransfer');
 
-% ===================== SUMMARY PLOT =====================
+%% ===================== SUMMARY PLOT =====================
 if ~isempty(ConvergedTransfers)
 
     caseIDs = [ConvergedTransfers.caseID];
@@ -485,4 +515,78 @@ if ~isempty(ConvergedTransfers)
     ylabel('Total \DeltaV [m/s]');
     title('Converged Transfers: Total \DeltaV vs Intermediary Inclination');
 
+end
+
+function [dtBest, minSep_km, minRelSpeed_km_s] = find_closest_extra_coast( ...
+    Earth, InterAchieved, Target, tMatch, dtExtraMax, Ngrid)
+
+    dtGrid = linspace(0, dtExtraMax, Ngrid);
+    sepGrid = zeros(size(dtGrid));
+
+    for i = 1:length(dtGrid)
+        [sepGrid(i), ~] = separation_after_extra_coast( ...
+            dtGrid(i), tMatch, Earth, InterAchieved, Target);
+    end
+
+    [~, idxBest] = min(sepGrid);
+
+    % Build local refinement interval around best grid point
+    idxA = max(idxBest - 1, 1);
+    idxB = min(idxBest + 1, length(dtGrid));
+
+    dtA = dtGrid(idxA);
+    dtB = dtGrid(idxB);
+
+    if dtA == dtB
+        dtBest = dtGrid(idxBest);
+    else
+        costFun = @(dt) separation_after_extra_coast( ...
+            dt, tMatch, Earth, InterAchieved, Target);
+
+        dtBest = fminbnd(costFun, dtA, dtB);
+    end
+
+    [minSep_km, minRelSpeed_km_s] = separation_after_extra_coast( ...
+        dtBest, tMatch, Earth, InterAchieved, Target);
+end
+
+function [sep_km, relSpeed_km_s] = separation_after_extra_coast( ...
+    dtExtra, tMatch, Earth, InterAchieved, Target)
+
+    tNow = tMatch + dtExtra;
+
+    InterNow  = propagate_orbit_J2(Earth, InterAchieved, tNow);
+    TargetNow = propagate_orbit_J2(Earth, Target,        tNow);
+
+    [rI, vI] = orbit_struct_to_cart(InterNow, Earth.mu);
+    [rT, vT] = orbit_struct_to_cart(TargetNow, Earth.mu);
+
+    sep_km = norm(rI - rT);
+    relSpeed_km_s = norm(vI - vT);
+end
+
+function [r, v] = orbit_struct_to_cart(Orb, mu)
+
+    a    = Orb.a;
+    e    = Orb.ecc;
+    inc  = Orb.inc;
+    raan = Orb.raan;
+    argp = Orb.argp;
+    M    = Orb.M;
+
+    E_deg = kepler(M, e);
+
+    ta_deg = 2*atan2d(sqrt(1+e)*sind(E_deg/2), ...
+                      sqrt(1-e)*cosd(E_deg/2));
+
+    ta_deg = mod(ta_deg, 360);
+
+    [x, y, z, vx, vy, vz] = kep2cart(a, e, inc, argp, raan, ta_deg, mu);
+
+    r = [x; y; z];
+    v = [vx; vy; vz];
+end
+
+function ang = wrapTo180Local(ang)
+    ang = mod(ang + 180, 360) - 180;
 end

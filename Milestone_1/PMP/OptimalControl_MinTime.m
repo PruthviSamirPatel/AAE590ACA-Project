@@ -152,6 +152,7 @@ view(3);
 figure;
 plot(t*tStar/3600, vecnorm(pos_dim,2,1), 'b', 'LineWidth', 1.5); hold on;
 plot(t*tStar/3600, vecnorm(rTarget_dim,2,1), 'r--', 'LineWidth', 1.5);
+yline(rEarth, 'Label','Earth Radius')
 grid on;
 xlabel('Time [hr]');
 ylabel('Radius [km]');
@@ -161,6 +162,7 @@ legend('Transfer trajectory', 'Target evolution', 'Location', 'best');
 %% Optional: Control magnitude vs Time
 figure;
 plot(t*tStar/3600, vecnorm(u,2,1), 'LineWidth', 1.5);
+ylim([-1e-3, umax*1.1])
 grid on;
 xlabel('Time [hr]');
 ylabel('||u|| [nondim]');

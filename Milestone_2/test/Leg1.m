@@ -1,7 +1,7 @@
 clc; clear; close all
 
 %% Constants
-days_coast = 15;
+days_coast = 20;
 t_coast = days_coast*24*60*60; % s
 
 %% Load environment
@@ -42,7 +42,7 @@ argp0 = deg2rad(Parking.argp);
 M0    = deg2rad(Parking.M);
 
 %% Intermediary orbit (classical)
-Inter = get_intermediary_orbit(Earth, Parking, Target, t_coast);
+Inter = get_intermediary_orbit_fixed_inc(Earth, Parking, Target, t_coast);
 aI    = Inter.a;
 eI    = Inter.ecc;
 incI  = deg2rad(Inter.inc);
@@ -70,7 +70,7 @@ K = eye(5);
 P = eye(5);
 
 %% Time span
-tFinal_days = 0.4;
+tFinal_days = 0.25;
 tSpan = [0, tFinal_days*24*3600/tStar];
 
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12, ...

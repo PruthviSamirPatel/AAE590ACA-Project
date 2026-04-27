@@ -43,7 +43,7 @@ rOn      = (rEarth + hOn_km)/lStar;
 epsBar   = 1e-6;
 
 %% Homotopy settings for rhoPenalty
-rho_vec = [0, 1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 5e-2];
+rho_vec = [0, 1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 3e-4, 1e-3];
 
 %% Load Parking Orbit
 load('Parking_Orbit.mat')
@@ -235,10 +235,6 @@ plot3(rPark_dim(1,:), rPark_dim(2,:), rPark_dim(3,:), 'k--', 'LineWidth', 1.2);
 plot3(rTarget_dim(1,:), rTarget_dim(2,:), rTarget_dim(3,:), 'r-', 'LineWidth', 1.5);
 plot3(pos_dim(1,:), pos_dim(2,:), pos_dim(3,:), 'b-', 'LineWidth', 2);
 
-% safe radius sphere
-surf((rSafe*lStar)*xe, (rSafe*lStar)*ye, (rSafe*lStar)*ze, ...
-    'FaceColor', [1.0 0.4 0.4], 'EdgeColor', 'none', 'FaceAlpha', 0.08);
-
 plot3(rPark_dim(1,1), rPark_dim(2,1), rPark_dim(3,1), 'ko', ...
     'MarkerFaceColor', 'k', 'MarkerSize', 6);
 plot3(rTarget_dim(1,1), rTarget_dim(2,1), rTarget_dim(3,1), 'ro', ...
@@ -247,7 +243,7 @@ plot3(pos_dim(1,end), pos_dim(2,end), pos_dim(3,end), 'bo', ...
     'MarkerFaceColor', 'b', 'MarkerSize', 6);
 
 legend('Earth', 'Initial parking orbit', 'Target state evolution', ...
-       'Optimal transfer arc', 'Safe radius', ...
+       'Optimal transfer arc', ...
        'Initial spacecraft state', 'Initial target state', ...
        'Final transfer state', 'Location', 'best');
 
@@ -279,6 +275,7 @@ legend('Transfer trajectory', 'h_{safe}', 'h_{on}', 'Location', 'best');
 %% Optional: Control magnitude vs Time
 figure;
 plot(t*tStar/3600, vecnorm(u,2,1), 'LineWidth', 1.5);
+ylim([-1e-3, 1.1*umax])
 grid on;
 xlabel('Time [hr]');
 ylabel('||u|| [nondim]');

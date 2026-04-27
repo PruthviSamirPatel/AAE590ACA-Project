@@ -1,8 +1,5 @@
 clc; clear; close all
 
-%% Constants
-days_coast = 15;
-t_coast = days_coast*24*60*60; % s
 
 %% Load environment
 load("Earth_params.mat")
@@ -19,10 +16,9 @@ tStar = sqrt(rEarth^3/mu);
 vStar = lStar/tStar;
 aStar = lStar/tStar^2;
 mu_nd = 1;
-t_coast_nd = t_coast/tStar;
 
 %% Max control
-uMax_km_s2 = 1e-4; % 10 cm/s = 1e-5km/s
+uMax_km_s2 = 1e-3; % 10 cm/s = 1e-5km/s
 uMax = uMax_km_s2 / (lStar / tStar^2); % nondimensionalized
 
 %% Earth avoidance / safety barrier settings
@@ -42,12 +38,12 @@ argp0 = deg2rad(Parking.argp);
 M0    = deg2rad(Parking.M);
 
 %% Intermediary orbit (classical)
-Inter = get_intermediary_orbit(Earth, Parking, Target, t_coast);
-aI    = Inter.a;
-eI    = Inter.ecc;
-incI  = deg2rad(Inter.inc);
-raanI = deg2rad(Inter.raan);
-argpI = deg2rad(Inter.argp);
+Inter = Target;
+aI    = Target.a;
+eI    = Target.ecc;
+incI  = deg2rad(Target.inc);
+raanI = deg2rad(Target.raan);
+argpI = deg2rad(Target.argp);
 
 %% Initial true anomaly from mean anomaly
 E0 = kepler(rad2deg(M0), e0); % deg
@@ -70,7 +66,7 @@ K = eye(5);
 P = eye(5);
 
 %% Time span
-tFinal_days = 0.4;
+tFinal_days = .25;
 tSpan = [0, tFinal_days*24*3600/tStar];
 
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12, ...
@@ -165,7 +161,7 @@ end
 plot3(r_initial(:,1), r_initial(:,2), r_initial(:,3), 'k:', ...
       'LineWidth', 1, 'DisplayName', 'Initial Orbit');
 
-% Inter orbit
+% Target orbit
 r_final = zeros(length(ta_range), 3);
 for j = 1:length(ta_range)
     [x, y, z] = kep2cart(aI, eI, rad2deg(incI), rad2deg(argpI), ...
@@ -173,7 +169,7 @@ for j = 1:length(ta_range)
     r_final(j,:) = [x, y, z];
 end
 plot3(r_final(:,1), r_final(:,2), r_final(:,3), 'b--', ...
-      'LineWidth', 1.2, 'DisplayName', 'Inter Orbit');
+      'LineWidth', 1.2, 'DisplayName', 'Target Orbit');
 
 % Transfer trajectory
 plot3(r_eci(:,1), r_eci(:,2), r_eci(:,3), 'r', ...
@@ -245,30 +241,6 @@ plot(t_days, rad2deg(ta_hist), 'LineWidth', 1.5); grid on
 xlabel('t [days]'); ylabel('\nu [deg]')
 
 sgtitle('Recovered Classical Orbital Elements')
-
-%% Save final orbital elements
-InterAchieved.a = a_km(end);
-InterAchieved.ecc = ecc_hist(end);
-InterAchieved.inc = rad2deg(inc_hist(end));
-InterAchieved.raan = rad2deg(raan_hist(end));
-InterAchieved.argp = rad2deg(argp_hist(end));
-
-% Final mean anomaly
-ta_end = ta_hist(end);              % rad
-e_end  = ecc_hist(end);
-
-E_end = 2*atan2( sqrt(1-e_end)*sin(ta_end/2), ...
-                 sqrt(1+e_end)*cos(ta_end/2) );   % rad
-E_end = mod(E_end, 2*pi);
-
-M_end = E_end - e_end*sin(E_end);   % rad
-M_end = mod(M_end, 2*pi);
-
-InterAchieved.M = rad2deg(M_end);
-
-% Mean motion
-InterAchieved.n = sqrt(Earth.mu / InterAchieved.a^3);   % rad/s
-save('Intermediate_Orbit.mat', 'InterAchieved')
 
 %% Plot helper
 function [Xdot, u_dimless] = mee_lyap_dyn_plot_helper(~, X, xslowT_nd, K, P, ...

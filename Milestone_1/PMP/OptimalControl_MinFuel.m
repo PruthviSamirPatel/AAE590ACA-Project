@@ -26,7 +26,6 @@ t0 = 0;
 opts = odeset('RelTol',1e-12, 'AbsTol',1e-12);
 numDays = .2;
 tf = numDays*24*60*60;
-tf = tf/tStar;
 
 %% Load Parking Orbit
 load('Parking_Orbit.mat')
@@ -48,6 +47,8 @@ X0 = [r0;v0];
 %% Get orbit slot state (assuming no perturbations) at tf
 % mean anomaly at tf:
 M_f = Target.M + rad2deg(Target.n_nd * (tf - t0));
+tf = tf/tStar;
+
 M_f = mod(M_f, 360);
 
 % convert to true anomaly:
