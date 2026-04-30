@@ -68,7 +68,7 @@ function plot_reduced_lyapunov_histories(cfg, best, solGrid)
         yline( uMax_mm_s2, 'k:', 'LineWidth',0.8);
         yline(0, 'k-', 'LineWidth',0.5);
         grid on;
-        ylabel(sprintf('%s->%s\nu_T [mm/s^2]', sol.satId, sol.slotId));
+        ylabel(sprintf('%s-->\n-->%s\nu_T [mm/s^2]', sol.satId, sol.slotId));
         ylim([-0.05*uMax_mm_s2, 1.20*uMax_mm_s2]);
 
         if k == 1

@@ -66,7 +66,7 @@ K = eye(5);
 P = eye(5);
 
 %% Time span
-tFinal_days = .25;
+tFinal_days = .4;
 tSpan = [0, tFinal_days*24*3600/tStar];
 
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12, ...
@@ -158,8 +158,7 @@ for j = 1:length(ta_range)
                          rad2deg(raan0), rad2deg(ta_range(j)), mu);
     r_initial(j,:) = [x, y, z];
 end
-plot3(r_initial(:,1), r_initial(:,2), r_initial(:,3), 'k:', ...
-      'LineWidth', 1, 'DisplayName', 'Initial Orbit');
+
 
 % Target orbit
 r_final = zeros(length(ta_range), 3);
@@ -168,13 +167,15 @@ for j = 1:length(ta_range)
                          rad2deg(raanI), rad2deg(ta_range(j)), mu);
     r_final(j,:) = [x, y, z];
 end
-plot3(r_final(:,1), r_final(:,2), r_final(:,3), 'b--', ...
-      'LineWidth', 1.2, 'DisplayName', 'Target Orbit');
+
 
 % Transfer trajectory
+plot3(r_initial(:,1), r_initial(:,2), r_initial(:,3), 'k:', ...
+      'LineWidth', 1.5, 'DisplayName', 'Initial Orbit');
 plot3(r_eci(:,1), r_eci(:,2), r_eci(:,3), 'r', ...
-      'LineWidth', 1.5, 'DisplayName', 'Transfer Trajectory');
-
+      'LineWidth', 2, 'DisplayName', 'Transfer Trajectory');
+plot3(r_final(:,1), r_final(:,2), r_final(:,3), 'b--', ...
+      'LineWidth', 1.5, 'DisplayName', 'Target Orbit');
 xlabel('x [km]'); ylabel('y [km]'); zlabel('z [km]');
 title('Orbit Transfer with Lyapunov Control in MEE + Earth Avoidance Barrier');
 legend('show', 'Location', 'northeast');

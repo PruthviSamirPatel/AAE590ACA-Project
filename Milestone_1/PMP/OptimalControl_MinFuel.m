@@ -182,6 +182,7 @@ view(3);
 figure;
 plot(t*tStar/3600, vecnorm(pos_dim,2,1), 'b', 'LineWidth', 1.5); hold on;
 plot(t*tStar/3600, vecnorm(rTarget_dim,2,1), 'r--', 'LineWidth', 1.5);
+yline(rEarth, 'Label','Earth Radius')
 grid on;
 xlabel('Time [hr]');
 ylabel('Radius [km]');
